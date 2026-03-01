@@ -1,0 +1,23 @@
+<template>
+    <lightning-card title={formTitle} icon-name="standard:account">
+        <div class="slds-p-around_small">
+            <lightning-input if:true={isToogleButtonVisible} type="toggle" checked={isOpportunity}
+                message-toggle-active="Opportunity" message-toggle-inactive="Case" onchange={handleOnChange}>
+            </lightning-input>
+            <div class="slds-m-top_medium">
+                <div class="slds-text-title_bold slds-m-bottom_small">Create: {formMainLabel}</div>
+                <lightning-record-edit-form if:true={field.isActive} for:each={inputFields} for:item="field"
+                    key={field.objectApiName} object-api-name={field.objectApiName} onsuccess={handleSuccess}
+                    onerror={handleError}>
+
+                    <lightning-input-field for:each={field.inputs} for:item="inputField" key={inputField.fieldName}
+                        field-name={inputField.fieldName} required={inputField.required}></lightning-input-field>
+
+                    <div class="slds-m-top_small">
+                        <lightning-button variant="brand" type="submit" label="Save"></lightning-button>
+                    </div>
+                </lightning-record-edit-form>
+            </div>
+        </div>
+    </lightning-card>
+</template>
