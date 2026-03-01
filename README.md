@@ -73,7 +73,7 @@ Displays a sortable data table of Opportunities or Cases, with an optional looku
 | `objectApiName` | `@api String` | `'Opportunity'` or `'Case'` – determines which data set is loaded |
 
 **Key behaviour:**
-- Subscribes to the `HomePageChannel__c` LMS channel; refreshes data when a `RECORD_CREATED` message is received
+
 - Reads page state via `CurrentPageReference` to support deep-linking and the View All flow
 - Shows a **View All** button when the result set exceeds 5 rows (the default page size)
 - In console navigation, View All opens a new workspace tab with an appropriate label and icon
@@ -112,19 +112,6 @@ Both methods order results by `CreatedDate DESC`.
 
 ### Prerequisites
 
-- Salesforce CLI (`sf` or `sfdx`) installed
-- A Salesforce org with Developer or Sandbox access
-- The `HomePageChannel__c` message channel deployed
-
-### Deploy to org
-
-```bash
-# Authenticate
-sf org login web --alias my-org
-
-# Deploy all metadata
-sf project deploy start --source-dir force-app --target-org my-org
-```
 
 ### Add components to a Lightning App Page
 
@@ -146,8 +133,4 @@ sf project deploy start --source-dir force-app --target-org my-org
 | `lightning-record-edit-form` | Platform-native record creation with validation |
 | `lightning-datatable` | Sortable, paginated data display |
 
----
 
-## License
-
-This project is intended for educational and demonstration purposes within a Salesforce environment.
