@@ -2,9 +2,8 @@ import { LightningElement, api, track, wire } from 'lwc';
 import getOpportunities from '@salesforce/apex/GetRecordController.getOpportunities';
 import getCase from '@salesforce/apex/GetRecordController.getCase';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
-import { subscribe, MessageContext, APPLICATION_SCOPE } from 'lightning/messageService';
 import { openTab, setTabLabel, setTabIcon, EnclosingTabId, IsConsoleNavigation } from 'lightning/platformWorkspaceApi';
-import CHANNEL from '@salesforce/messageChannel/HomePageChannel__c';
+import { registerRefreshHandler, unregisterRefreshHandler } from 'lightning/refresh';
 
 
 
@@ -19,17 +18,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     @wire(IsConsoleNavigation) isConsoleNavigation;
     @wire(EnclosingTabId) enclosingTabId;
 
-    messageContext;
-    @wire(MessageContext)
-    wiredMessageContext(value) {
-        this.messageContext = value;
-        if (value && !this.subscription) {
-            this.subscribeToRecordCreated();
-        }
-    }
-
-
-
+    refreshHandlerID;
     showAll = true;
     targetId = null;
     isFullView = false;
@@ -71,24 +60,14 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
 
     connectedCallback() {
         this.load();
+        this.refreshHandlerID = registerRefreshHandler(this,this.load.bind(this));
     }
 
-    subscribeToRecordCreated() {
-        if (this.subscription) return;
-
-        this.subscription = subscribe(this.messageContext, CHANNEL, (message) => {
-            if (message?.type !== 'RECORD_CREATED') return;
-
-            if (!this.objectApiName) {
-                this.objectApiName = message.objectApiName;
-            }
-
-            if (message.objectApiName === this.objectApiName) {
-                this.load();
-            }
-        }, { scope: APPLICATION_SCOPE });
+    disconnectedCallback() {
+        if (this.refreshHandlerID) {
+            unregisterRefreshHandler(this.refreshHandlerID);
+        }
     }
-
 
     async load() {
         if (!this.objectApiName) return;
@@ -139,20 +118,14 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         this[NavigationMixin.Navigate](pageReference);
     }
 
+
     handleTargetChange(event) {
         this.showAll = true;
         this.targetId = event.detail.value[0] || null;
         this.load();
     }
 
-
-
-
-
-
-
-
-
+    
     get showViewAll() {
         return this.showAll && !this.isFullView && this.data.length > PAGE_SIZE;
     }

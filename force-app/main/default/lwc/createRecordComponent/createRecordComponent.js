@@ -1,7 +1,6 @@
-import { LightningElement, wire, api } from 'lwc';
-import { publish, MessageContext } from 'lightning/messageService';
-import CHANNEL from '@salesforce/messageChannel/HomePageChannel__c';
+import { LightningElement, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import {RefreshEvent} from 'lightning/refresh';
 
 
 
@@ -9,6 +8,7 @@ export default class CreateRecordComponent extends LightningElement {
 
     @api isToogleButtonVisible;
     @api formTitle;
+    
 
     // Determines the type of object : Opportunity or Case
     isOpportunity = true;
@@ -48,10 +48,7 @@ export default class CreateRecordComponent extends LightningElement {
                 { fieldName: 'Subject', required: false },
             ]
         }
-    ]
-
-    @wire(MessageContext) messageContext;
-
+    ];
 
     // Handles tooggling between Opportunity and Case creation
     handleOnChange(event) {
@@ -63,7 +60,7 @@ export default class CreateRecordComponent extends LightningElement {
         this.formMainLabel = this.isOpportunity ? 'Opportunity' : 'Case';
     }
 
-    // Handles successful record creation
+    // Handles successful record creation and shows a toast message then subscrite to RefreshEvent
     handleSuccess(event) {
         const object = this.isOpportunity ? 'Opportunity' : 'Case';
 
@@ -74,14 +71,7 @@ export default class CreateRecordComponent extends LightningElement {
         }));
 
         this.resetFormFields();
-
-        publish(this.messageContext, CHANNEL, {
-            type: 'RECORD_CREATED',
-            objectApiName: object,
-            targetId: null
-        });
-
-
+        this.dispatchEvent(new RefreshEvent());
     }
 
     // Handles errors during record creation
@@ -97,22 +87,10 @@ export default class CreateRecordComponent extends LightningElement {
 
     handleOppAccountChange(event) {
         this.selectedAccountId = event.detail.value || null;
-
-        publish(this.messageContext, CHANNEL, {
-            type: 'TARGET_CHANGED',
-            objectApiName: 'Opportunity',
-            targetId: this.selectedAccountId
-        });
     }
 
     handleCaseContactChange(event) {
         this.selectedContactId = event.detail.value || null;
-
-        publish(this.messageContext, CHANNEL, {
-            type: 'TARGET_CHANGED',
-            objectApiName: 'Case',
-            targetId: this.selectedContactId
-        });
     }
 
     // Resets all form fields to their default state
