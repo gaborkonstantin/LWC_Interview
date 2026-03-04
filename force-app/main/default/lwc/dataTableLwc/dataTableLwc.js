@@ -1,27 +1,56 @@
-import { LightningElement, api, track, wire } from 'lwc';
-import getOpportunities from '@salesforce/apex/GetRecordController.getOpportunities';
-import getCase from '@salesforce/apex/GetRecordController.getCase';
+import { LightningElement, api, wire } from 'lwc';
+import getObjectConfig from '@salesforce/apex/GetRecordController.getObjectConfig';
+import getRecords from '@salesforce/apex/GetRecordController.getRecords';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { openTab, setTabLabel, setTabIcon, EnclosingTabId, IsConsoleNavigation } from 'lightning/platformWorkspaceApi';
 import { registerRefreshHandler, unregisterRefreshHandler } from 'lightning/refresh';
 
 
 
-const PAGE_SIZE = 5;
 
 export default class DataTableLwc extends NavigationMixin(LightningElement) {
 
 
     @api objectApiName;
-    @track data = [];
-    @track error;
+    data = [];
+    error;
+    columns = [];
+
     @wire(IsConsoleNavigation) isConsoleNavigation;
     @wire(EnclosingTabId) enclosingTabId;
 
+    _config = null;
+    _fieldSetup = null;
+    _targetObject = null;
+    _targetField = null;
     refreshHandlerID;
+
+
+
     showAll = true;
     targetId = null;
     isFullView = false;
+
+    @wire(getObjectConfig, { objectApiName: '$objectApiName' })
+    wiredConfig({ data, error }) {
+        if (data) {
+            this._config = data;
+            try {
+                this._fieldSetup = JSON.parse(this._config.FieldSetup__c);
+
+            } catch (e) {
+                this.error = 'Invalid Field Setup JSON in Metadata';
+                return;
+            }
+
+            this._parseTargetField();
+            this.columns = this._buildColumns();
+            this.load();
+        } else if (error) {
+            this.error = error?.body?.message || error.message;
+        }
+    }
+
 
 
 
@@ -30,37 +59,23 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         const state = pageRef?.state;
         if (!state) return;
 
-        let shouldReload = false;
-
-        if (state.c__objectApiName && state.c__objectApiName !== this.objectApiName) {
+        if (state.c__objectApiName ) {
             this.objectApiName = state.c__objectApiName;
-            shouldReload = true;
         }
 
         if ('c__targetId' in state) {
-            const newTargetId = state.c__targetId || null;
-            if (newTargetId !== this.targetId) {
-                this.targetId = newTargetId;
-                shouldReload = true;
-            }
+            this.targetId = state.c__targetId || null;
         }
 
         if (state.c__viewAll === 'true') {
             this.isFullView = true;
             this.showAll = false; // Do not show the button again in full view
-            shouldReload = true;
-
-        }
-
-        if (shouldReload && this.objectApiName) {
-            this.load();
         }
     }
 
 
     connectedCallback() {
-        this.load();
-        this.refreshHandlerID = registerRefreshHandler(this,this.load.bind(this));
+        this.refreshHandlerID = registerRefreshHandler(this, this.load.bind(this));
     }
 
     disconnectedCallback() {
@@ -69,14 +84,14 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         }
     }
 
+
     async load() {
         if (!this.objectApiName) return;
         try {
-            if (this.isOpportunity) {
-                this.data = await getOpportunities({ recordId: this.targetId });
-            } else {
-                this.data = await getCase({ recordId: this.targetId });
-            }
+            this.data = await getRecords({
+                objectApiName: this.objectApiName,
+                targetId: this.targetId,
+            });
         } catch (error) {
 
             this.error = error?.body?.message || error.message;
@@ -87,13 +102,48 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         }
     }
 
-    async _updateTabMeta() {
-        if (!this.enclosingTabId) 
+    _parseTargetField() {
+        if ( !this._config?.TargetField__c)
             return;
-        const label = this.isOpportunity ? 'Opportunity' : 'Case';
-        const icon = this.isOpportunity ? 'standard:opportunity' : 'standard:case';
-        await setTabLabel(this.enclosingTabId, label);
-        await setTabIcon(this.enclosingTabId, icon, { iconAlt: label });
+        [this._targetObject, this._targetField] = this._config.TargetField__c.split('.');
+    }
+
+    _buildColumns(){
+        if(!this._fieldSetup?.length) return [];
+        return this._fieldSetup
+            .filter(f => f.isVisible)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map(f => {
+                if (f.type === 'url'){
+                    return {
+                        label: f.label,
+                        fieldName: 'link',
+                        type: 'url',
+                        sortable: f.isSortable,
+                        typeAttributes: {
+                            label: { fieldName: f.fieldName },
+                            target: '_self'
+                         }
+                     };
+                }
+                return {
+                        label: f.label,
+                        fieldName: f.fieldName,
+                        type: f.type,
+                        sortable: f.isSortable
+                        }
+                    });
+                }
+
+    
+
+    async _updateTabMeta() {
+        if (!this.enclosingTabId || !this._config) 
+            return;
+        await setTabLabel(this.enclosingTabId, this._config.TabLabel__c);
+        await setTabIcon(this.enclosingTabId, this._config.TabIcon__c,{
+            iconAlt: this._config.DataTableLabel__c
+        });
     }
 
     async handleViewAll() {
@@ -125,10 +175,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         this.load();
     }
 
-    
-    get showViewAll() {
-        return this.showAll && !this.isFullView && this.data.length > PAGE_SIZE;
-    }
+
 
     sortBy(field, reverse, primer) {
         const key = primer
@@ -156,51 +203,46 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
 
 
 
-    get isOpportunity() {
-        return this.objectApiName === 'Opportunity';
+    get title(){
+        return this._config?.TabLabel__c || 'Data Table';
     }
 
-    get columns() {
-        if (this.isOpportunity) {
-            return [
-                {
-                    label: 'Opportunity Name', fieldName: 'link', type: 'url',
-                    typeAttributes: {
-                        label: { fieldName: 'Name' },
-                        target: '_self'
-                    }
-                },
-                { label: 'Account Name', fieldName: 'accountName', sortable: true },
-                { label: 'Amount', fieldName: 'Amount' },
-                { label: 'Type', fieldName: 'Type' },
-                { label: 'Close Date', fieldName: 'CloseDate', sortable: true },
-                { label: 'Stage', fieldName: 'StageName' },
-                { label: 'Probability (%)', fieldName: 'Probability' },
-            ];
-        }
-        return [
-            {
-                label: 'Case Number', fieldName: 'link', type: 'url',
-                typeAttributes: { label: { fieldName: 'caseNumber' }, target: '_self' }
-            },
-            { label: 'Contact Name', fieldName: 'contactName', sortable: true },
-            { label: 'Status', fieldName: 'Status' },
-            { label: 'Priority', fieldName: 'Priority' },
-            { label: 'Supplied Email', fieldName: 'SuppliedEmail' },
-            { label: 'Description', fieldName: 'Description' },
-            { label: 'Subject', fieldName: 'Subject' },
-            { label: 'Origin', fieldName: 'Origin' },
-        ];
+    get cardIcon(){
+        return this._config?.TabIcon__c || 'standard:record';
+    }
+
+    get pageSize(){
+        return this._config?.PageSize__c || 5;
+    }
+
+    get hasTarget(){
+        return !!this._targetField;
+    }
+
+
+    get targetObject() {
+        return this._targetObject;
+    }
+
+    get targetField() {
+        return this._targetField;
+    }
+
+
+
+     get showViewAll() {
+        return this.showAll && !this.isFullView && (this.data?.length ?? 0) > this.pageSize;
     }
 
     get tableData() {
-        const rows = this.isFullView ? (this.data || []) : (this.data || []).slice(0, PAGE_SIZE);
+        if (!this.data?.length) return [];
+        const rows = this.isFullView ? (this.data || []) : (this.data || []).slice(0, this.pageSize);
         return rows.map(r => ({
             ...r,
             link: `/${r.Id}`,
-            accountName: r.Account?.Name,
-            contactName: r.Contact?.Name,
-            caseNumber: r.CaseNumber
+            ...(this._targetField && {
+                [this._targetField] : r [this._targetObject]?.Name
+            })
         }));
     }
 

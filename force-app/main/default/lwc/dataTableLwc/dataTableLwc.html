@@ -1,27 +1,20 @@
 <template>
     <lightning-card title={title}>
-        <template if:true={isOpportunity}>
-            <lightning-record-edit-form object-api-name="Opportunity">
-                <lightning-input-field field-name="AccountId" onchange={handleTargetChange}>
+        <template if:true={hasTarget}>
+            <lightning-record-edit-form object-api-name={objectApiName}>
+                <lightning-input-field field-name={targetField} onchange={handleTargetChange}>
                 </lightning-input-field>
             </lightning-record-edit-form>
         </template>
 
-        <template if:false={isOpportunity}>
-            <lightning-record-edit-form object-api-name="Case">
-                <lightning-input-field field-name="ContactId" onchange={handleTargetChange}>
-                </lightning-input-field>
-            </lightning-record-edit-form>
+        <template if:true={error}>
+            <p class="slds-text-color_error slds-m-around_small">{error}</p>
         </template>
-        <lightning-datatable key-field="id" columns={columns} data={tableData} hide-checkbox-column
+        <lightning-datatable key-field="Id" columns={columns} data={tableData} hide-checkbox-column
             default-sort-direction={defaultSortDirection} sorted-direction={sortDirection} sorted-by={sortedBy}
             onsort={onHandleSort}>
         </lightning-datatable>
     </lightning-card>
-
-
-
-
     <template if:true={showViewAll}>
         <div class="slds-m-top_small">
             <lightning-button variant="brand" label="View All" onclick={handleViewAll}>

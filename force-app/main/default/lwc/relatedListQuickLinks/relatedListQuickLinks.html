@@ -1,0 +1,28 @@
+<template>
+    <lightning-card title="Related List Quick Links" icon-name="standard:related_list">
+        <div class="slds-card__body slds-card__body_inner">
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading..." size="small"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <ul class="slds-grid slds-wrap">
+                    <template for:each={formattedLinks} for:item="link">
+                        <li key={link.objectApiName} class="slds-col slds-size_1-of-4 slds-p-around_x-small slds-media slds-media_center">
+                            <div class="slds-media__figure">
+                                <lightning-icon icon-name={link.icon} size="x-small"></lightning-icon>
+                            </div>
+                            <div class="slds-media__body">
+                                <a class="slds-link" data-object={link.objectApiName} onclick={handleLinkClick}>
+                                    {link.formattedLabel}
+                                </a>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>
