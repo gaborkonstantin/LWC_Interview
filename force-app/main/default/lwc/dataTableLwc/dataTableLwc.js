@@ -33,6 +33,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     sortedBy;
     sortDirection;
 
+    // Fetches the Object_Config__mdt metadata record based on objectApiName and parses the field setup JSON
     @wire(getObjectConfig, { objectApiName: '$objectApiName' })
     wiredConfig({ data, error }) {
         if (data) {
@@ -55,7 +56,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
 
 
 
-
+    // Reads navigation state parameters from the current page reference
     @wire(CurrentPageReference)
     readPageState(pageRef) {
         const state = pageRef?.state;
@@ -83,17 +84,19 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     }
 
 
+    // Registers a refresh handler to reload data when a RefreshEvent is dispatched
     connectedCallback() {
         this.refreshHandlerID = registerRefreshHandler(this, this.load.bind(this));
     }
 
+    // Unregisters the refresh handler when the component is removed from the DOM
     disconnectedCallback() {
         if (this.refreshHandlerID) {
             unregisterRefreshHandler(this.refreshHandlerID);
         }
     }
 
-
+    // Loads records from the server using the Apex getRecords method and updates tab metadata in full view mode
     async load() {
         if (!this.objectApiName) return;
         try {
@@ -113,6 +116,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         }
     }
 
+    // Parses the TargetField__c metadata value into separate target object and target field parts
     _parseTargetField() {
         if (!this._config?.TargetField__c) return;
 
@@ -121,6 +125,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         this._targetField = this._targetField || parts[1];
     }
 
+    // Builds the datatable column definitions from the field setup metadata, filtering by visibility and sorting by sortOrder
     _buildColumns() {
         if (!this._fieldSetup?.length) return [];
         return this._fieldSetup
@@ -149,16 +154,18 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     }
 
 
-
+    // Updates the console tab label and icon based on the metadata configuration
     async _updateTabMeta() {
         if (!this.enclosingTabId || !this._config)
             return;
         await setTabLabel(this.enclosingTabId, this._config.TabLabel__c);
-        await setTabIcon(this.enclosingTabId, this._config.TabIcon__c,{
+        await setTabIcon(this.enclosingTabId, this._config.TabIcon__c, {
             iconAlt: this._config.DataTableLabel__c
         });
     }
 
+
+    // Navigates to a full view of the datatable, opening a new console tab or navigating to a new page
     async handleViewAll() {
         const pageReference = {
             type: 'standard__component',
@@ -184,6 +191,8 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     }
 
 
+
+    // Handles target lookup field change and reloads the data with the newly selected record ID
     handleTargetChange(event) {
         this.showAll = true;
         this.targetId = event.detail.value[0] || null;
@@ -191,7 +200,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     }
 
 
-
+    // Returns a comparator function for sorting data by a given field and direction with an optional primer
     sortBy(field, reverse, primer) {
         const key = primer
             ? function (x) {
@@ -207,6 +216,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         };
     }
 
+    // Handles column header sort event, clones and sorts the data array, then updates sort state
     onHandleSort(event) {
         const { fieldName: sortedBy, sortDirection } = event.detail;
         const cloneData = [...this.data];
@@ -244,11 +254,12 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     }
 
 
-
+    // Determines whether the "View All" button should be visible based on data size and current view mode
     get showViewAll() {
         return this.showAll && !this.isFullView && (this.data?.length ?? 0) > this.pageSize;
     }
 
+    // Returns the table data with record links and flattened relationship fields, limited by page size unless in full view
     get tableData() {
         if (!this.data?.length) return [];
         const rows = this.isFullView ? (this.data || []) : (this.data || []).slice(0, this.pageSize);

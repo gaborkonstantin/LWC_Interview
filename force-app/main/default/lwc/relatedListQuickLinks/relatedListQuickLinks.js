@@ -15,7 +15,7 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
 
     @wire(IsConsoleNavigation) isConsoleNavigation;
 
-    
+    // Fetches the RelatedQuickLink__mdt metadata record by configName and parses the LinksSetup JSON
     @wire(getRelatedQuickLinksConfig, { configName: '$configName' })
     wiredConfig({ data, error }) {
         if (data) {
@@ -34,6 +34,7 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
         }
     }
 
+    // Loads record counts for each quick link in parallel and merges them into the links array
      async _loadCounts() {
         if (!this.recordId || !this.links.length) {
             this.isLoading = false;
@@ -57,6 +58,7 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
         }
     } 
 
+    // Returns the links with formatted labels that include the record count (capped at "10+")
     get formattedLinks() {
         return this.links.map(link => ({
             ...link,
@@ -66,6 +68,7 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
 
 
    
+    // Handles quick link click, navigates to the dataTableLwc component in a new console tab or via standard navigation
     async handleLinkClick(event) {
         event.preventDefault();
         const { object: objectApiName, targetfield: targetField, targetobject: targetObject } = event.currentTarget.dataset;
