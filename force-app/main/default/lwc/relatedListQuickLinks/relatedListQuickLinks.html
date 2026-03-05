@@ -14,7 +14,7 @@
                                 <lightning-icon icon-name={link.icon} size="x-small"></lightning-icon>
                             </div>
                             <div class="slds-media__body">
-                                <a class="slds-link" data-object={link.objectApiName} onclick={handleLinkClick}>
+                                <a class="slds-link" data-object={link.objectApiName} data-targetfield={link.targetField} data-targetobject={link.targetObject} onclick={handleLinkClick}>
                                     {link.formattedLabel}
                                 </a>
                             </div>

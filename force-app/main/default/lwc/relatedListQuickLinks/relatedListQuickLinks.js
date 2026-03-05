@@ -17,7 +17,7 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
 
     
     @wire(getRelatedQuickLinksConfig, { configName: '$configName' })
-    async wiredConfig({ data, error }) {
+    wiredConfig({ data, error }) {
         if (data) {
             try {
                 this.links = JSON.parse(data.LinksSetup__c);
@@ -26,23 +26,36 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
                 this.isLoading = false;
                 return;
             }
-            await this._loadCounts();
-            this.isLoading = false;
+            this._loadCounts();
+           
         } else if (error) {
             this.error = error?.body?.message || error.message;
             this.isLoading = false;
         }
     }
 
-    async _loadCounts() {
-        if (!this.recordId || !this.links.length) return;
-        const counts = await Promise.all(
-            this.links.map(link =>
-                getRecordCount({ objectApiName: link.objectApiName, filterField: link.filterField, recordId: this.recordId })
-            )
-        );
-        this.links = this.links.map((link, i) => ({ ...link, count: counts[i] }));
-    }
+     async _loadCounts() {
+        if (!this.recordId || !this.links.length) {
+            this.isLoading = false;
+            return;
+        }
+        try {
+            const counts = await Promise.all(
+                this.links.map(link =>
+                    getRecordCount({
+                        objectApiName: link.objectApiName,
+                        filterField: link.targetField,
+                        recordId: this.recordId
+                    })
+                )
+            );
+            this.links = this.links.map((link, i) => ({ ...link, count: counts[i] }));
+        } catch (e) {
+            this.error = e?.body?.message || e.message;
+        } finally {
+            this.isLoading = false;
+        }
+    } 
 
     get formattedLinks() {
         return this.links.map(link => ({
@@ -55,7 +68,7 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
    
     async handleLinkClick(event) {
         event.preventDefault();
-        const objectApiName = event.currentTarget.dataset.object;
+        const { object: objectApiName, targetfield: targetField, targetobject: targetObject } = event.currentTarget.dataset;
         if (!objectApiName) return;
 
         const pageReference = {
@@ -64,6 +77,8 @@ export default class RelatedListQuickLinks extends NavigationMixin(LightningElem
             state: {
                 c__objectApiName: objectApiName,
                 c__targetId: this.recordId,
+                c__targetField: targetField,
+                c__targetObject: targetObject,
                 c__viewAll: 'true',
                 c__uid: `${objectApiName}-${this.recordId}`
             }

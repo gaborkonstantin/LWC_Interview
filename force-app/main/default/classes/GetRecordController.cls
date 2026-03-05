@@ -9,11 +9,11 @@ public with sharing class GetRecordController {
     }
 
 
-    @AuraEnabled(cacheable=true)
-    public static List<sObject> getRecords(String objectApiName, String targetId){
+     @AuraEnabled
+    public static List<sObject> getRecords(String objectApiName, String targetId, String targetField) {
         try{
             Object_Config__mdt config = getObjectConfig(objectApiName);
-            String query = buildQuery(config, targetId);
+            String query = buildQuery(config, targetId, targetField);
             return Database.query(query);
         }catch(Exception e){
             throw new AuraHandledException('Query Error: ' + e.getMessage());
@@ -21,13 +21,19 @@ public with sharing class GetRecordController {
     }
 
 
-    private static String buildQuery(Object_Config__mdt config, String targetId){
+    private static String buildQuery(Object_Config__mdt config, String targetId, String targetField) {
         String query = config.Query__c;
-        if(String.IsNotBlank(targetId) && String.IsNotBlank(config.TargetField__c)){
-            String targetField = config.TargetField__c.split('\\.')[1];
-            query += ' WHERE ' + targetField + ' = :targetId';
-            
+
+        if (String.isNotBlank(targetId)) {
+            String field = String.isNotBlank(targetField)
+                ? targetField
+                : (String.isNotBlank(config.TargetField__c) ? config.TargetField__c.split('\\.')[1] : null);
+
+            if (String.isNotBlank(field)) {
+                query += ' WHERE ' + field + ' = :targetId';
+            }
         }
+
         if (String.isNotBlank(config.OrderBy__c)) {
             query += ' ' + config.OrderBy__c;
         }

@@ -30,6 +30,8 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     showAll = true;
     targetId = null;
     isFullView = false;
+    sortedBy;
+    sortDirection;
 
     @wire(getObjectConfig, { objectApiName: '$objectApiName' })
     wiredConfig({ data, error }) {
@@ -59,12 +61,19 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         const state = pageRef?.state;
         if (!state) return;
 
-        if (state.c__objectApiName ) {
+        if (state.c__objectApiName) {
             this.objectApiName = state.c__objectApiName;
         }
 
         if ('c__targetId' in state) {
             this.targetId = state.c__targetId || null;
+        }
+        if ('c__targetField' in state) {
+            this._targetField = state.c__targetField || null;
+        }
+
+        if ('c__targetObject' in state) {
+            this._targetObject = state.c__targetObject || null;
         }
 
         if (state.c__viewAll === 'true') {
@@ -91,6 +100,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
             this.data = await getRecords({
                 objectApiName: this.objectApiName,
                 targetId: this.targetId,
+                targetField: this._targetField,
             });
         } catch (error) {
 
@@ -103,18 +113,20 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     }
 
     _parseTargetField() {
-        if ( !this._config?.TargetField__c)
-            return;
-        [this._targetObject, this._targetField] = this._config.TargetField__c.split('.');
+        if (!this._config?.TargetField__c) return;
+
+        const parts = this._config.TargetField__c.split('.');
+        this._targetObject = this._targetObject || parts[0];
+        this._targetField = this._targetField || parts[1];
     }
 
-    _buildColumns(){
-        if(!this._fieldSetup?.length) return [];
+    _buildColumns() {
+        if (!this._fieldSetup?.length) return [];
         return this._fieldSetup
             .filter(f => f.isVisible)
             .sort((a, b) => a.sortOrder - b.sortOrder)
             .map(f => {
-                if (f.type === 'url'){
+                if (f.type === 'url') {
                     return {
                         label: f.label,
                         fieldName: 'link',
@@ -123,25 +135,25 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
                         typeAttributes: {
                             label: { fieldName: f.fieldName },
                             target: '_self'
-                         }
-                     };
+                        }
+                    };
                 }
                 return {
-                        label: f.label,
-                        fieldName: f.fieldName,
-                        type: f.type,
-                        sortable: f.isSortable
-                        }
-                    });
-                }
+                    label: f.label,
+                    fieldName: f.fieldName,
+                    type: f.type,
+                    sortable: f.isSortable
+                };
+            });
+    }
 
-    
+
 
     async _updateTabMeta() {
-        if (!this.enclosingTabId || !this._config) 
+        if (!this.enclosingTabId || !this._config)
             return;
         await setTabLabel(this.enclosingTabId, this._config.TabLabel__c);
-        await setTabIcon(this.enclosingTabId, this._config.TabIcon__c,{
+        await setTabIcon(this.enclosingTabId, this._config.TabIcon__c, {
             iconAlt: this._config.DataTableLabel__c
         });
     }
@@ -155,6 +167,8 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
             state: {
                 c__objectApiName: this.objectApiName,
                 c__targetId: this.targetId || '',
+                c__targetField: this._targetField || '',
+                c__targetObject: this._targetObject || '',
                 c__viewAll: 'true',
                 c__uid: `${this.objectApiName}-${this.targetId || 'all'}`
             }
@@ -203,19 +217,19 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
 
 
 
-    get title(){
+    get title() {
         return this._config?.TabLabel__c || 'Data Table';
     }
 
-    get cardIcon(){
+    get cardIcon() {
         return this._config?.TabIcon__c || 'standard:record';
     }
 
-    get pageSize(){
+    get pageSize() {
         return this._config?.PageSize__c || 5;
     }
 
-    get hasTarget(){
+    get hasTarget() {
         return !!this._targetField;
     }
 
@@ -230,7 +244,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
 
 
 
-     get showViewAll() {
+    get showViewAll() {
         return this.showAll && !this.isFullView && (this.data?.length ?? 0) > this.pageSize;
     }
 
@@ -240,8 +254,10 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         return rows.map(r => ({
             ...r,
             link: `/${r.Id}`,
+            Contact_Name: r.Contact?.Name,
+            Account_Name: r.Account?.Name,
             ...(this._targetField && {
-                [this._targetField] : r [this._targetObject]?.Name
+                [this._targetField]: r[this._targetObject]?.Name
             })
         }));
     }
