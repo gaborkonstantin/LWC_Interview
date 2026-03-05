@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Case</label>
+    <protected>false</protected>
+    <values>
+        <field>FieldSetup__c</field>
+        <value xsi:type="xsd:string">[
+{ &quot;fieldName&quot;: &quot;CaseNumber&quot;, &quot;label&quot;: &quot;Case Number&quot;, &quot;type&quot;: &quot;url&quot;, &quot;isSortable&quot;: false, &quot;isVisible&quot;: true, &quot;sortOrder&quot;: 1 },
+{ &quot;fieldName&quot;: &quot;Contact_Name&quot;, &quot;label&quot;: &quot;Contact Name&quot;, &quot;type&quot;: &quot;text&quot;, &quot;isSortable&quot;: true, &quot;isVisible&quot;: true, &quot;sortOrder&quot;: 2 },
+{ &quot;fieldName&quot;: &quot;Status&quot;, &quot;label&quot;: &quot;Status&quot;, &quot;type&quot;: &quot;text&quot;, &quot;isSortable&quot;: true, &quot;isVisible&quot;: true, &quot;sortOrder&quot;: 3 },
+{ &quot;fieldName&quot;: &quot;Priority&quot;, &quot;label&quot;: &quot;Priority&quot;, &quot;type&quot;: &quot;text&quot;, &quot;isSortable&quot;: false, &quot;isVisible&quot;: true, &quot;sortOrder&quot;: 4 },
+{ &quot;fieldName&quot;: &quot;SuppliedEmail&quot;, &quot;label&quot;: &quot;Supplied Email&quot;, &quot;type&quot;: &quot;text&quot;, &quot;isSortable&quot;: false, &quot;isVisible&quot;: true, &quot;sortOrder&quot;: 5 },
+{ &quot;fieldName&quot;: &quot;Subject&quot;, &quot;label&quot;: &quot;Subject&quot;, &quot;type&quot;: &quot;text&quot;, &quot;isSortable&quot;: false, &quot;isVisible&quot;: true, &quot;sortOrder&quot;: 6 },
+{ &quot;fieldName&quot;: &quot;Description&quot;, &quot;label&quot;: &quot;Description&quot;, &quot;type&quot;: &quot;text&quot;, &quot;isSortable&quot;: false, &quot;isVisible&quot;: false, &quot;sortOrder&quot;: 7 },
+{ &quot;fieldName&quot;: &quot;Origin&quot;, &quot;label&quot;: &quot;Origin&quot;, &quot;type&quot;: &quot;text&quot;, &quot;isSortable&quot;: false, &quot;isVisible&quot;: false, &quot;sortOrder&quot;: 8 }
+]</value>
+    </values>
+    <values>
+        <field>ObjectApiName__c</field>
+        <value xsi:type="xsd:string">Case</value>
+    </values>
+    <values>
+        <field>OrderBy__c</field>
+        <value xsi:type="xsd:string">ORDER BY CreatedDate DESC</value>
+    </values>
+    <values>
+        <field>PageSize__c</field>
+        <value xsi:type="xsd:double">5.0</value>
+    </values>
+    <values>
+        <field>Query__c</field>
+        <value xsi:type="xsd:string">SELECT Id, CaseNumber, ContactId, AccountId,Contact.Name, Account.Name, Status, Priority, SuppliedEmail, Description, Subject, Origin FROM Case</value>
+    </values>
+    <values>
+        <field>TabIcon__c</field>
+        <value xsi:type="xsd:string">standard:case</value>
+    </values>
+    <values>
+        <field>TabLabel__c</field>
+        <value xsi:type="xsd:string">Cases</value>
+    </values>
+    <values>
+        <field>TargetField__c</field>
+        <value xsi:type="xsd:string">Contact.ContactId</value>
+    </values>
+</CustomMetadata>
