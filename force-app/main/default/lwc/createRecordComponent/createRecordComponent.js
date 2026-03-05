@@ -18,8 +18,7 @@ export default class CreateRecordComponent extends LightningElement {
     selectedAccountId;
     selectedContactId;
 
-    // Custom metadata typeba bevinni ezt az adatot
-    // Refresht használni lms helyett
+   
     inputFields = [
         {
             "objectApiName": "Opportunity",

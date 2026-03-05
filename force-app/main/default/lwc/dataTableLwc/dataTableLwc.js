@@ -100,8 +100,9 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
             this.data = await getRecords({
                 objectApiName: this.objectApiName,
                 targetId: this.targetId,
-                targetField: this._targetField,
+                targetField: this._targetField
             });
+            this.error = null;
         } catch (error) {
 
             this.error = error?.body?.message || error.message;
@@ -153,7 +154,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
         if (!this.enclosingTabId || !this._config)
             return;
         await setTabLabel(this.enclosingTabId, this._config.TabLabel__c);
-        await setTabIcon(this.enclosingTabId, this._config.TabIcon__c, {
+        await setTabIcon(this.enclosingTabId, this._config.TabIcon__c,{
             iconAlt: this._config.DataTableLabel__c
         });
     }
