@@ -1,136 +1,53 @@
-# Salesforce LWC – Opportunity & Case Manager
+# Metadata-Driven LWC Framework
 
-A Salesforce Lightning Web Components (LWC) application for creating and viewing **Opportunities** and **Cases** from a unified interface. Components communicate via Lightning Message Service (LMS) and support both standard and console navigation.
+A reusable Lightning Web Component framework for Salesforce where all configuration — field definitions, queries, columns, labels — lives in **Custom Metadata Types**. Admins can add new objects or modify the UI from Setup without code deployments.
 
----
-
-## Features
-
-- **Toggle between Opportunity and Case** creation with a single switch
-- **Dynamic record creation** using `lightning-record-edit-form` with field-level validation
-- **Filterable data table** – filter Opportunities by Account or Cases by Contact via lookup fields
-- **Sortable columns** in the data table
-- **View All** – opens a full paginated view in a new console tab (or navigates via standard page reference)
-- **Real-time refresh** – data table auto-reloads after a new record is created via LMS
-- **Toast notifications** on success and error
-
----
-
-## Project Structure
+## Architecture
 
 ```
-force-app/main/default/
-│
-├── classes/
-│   ├── GetRecordController.cls          # Apex controller for SOQL queries
-│   └── GetRecordController.cls-meta.xml
-│
-├── lwc/
-│   ├── createRecordComponent/           # Form component for creating records
-│   │   ├── createRecordComponent.html
-│   │   ├── createRecordComponent.js
-│   │   └── createRecordComponent.js-meta.xml
-│   │
-│   └── dataTableLwc/                    # Data table component for viewing records
-│       ├── dataTableLwc.html
-│       ├── dataTableLwc.js
-│       └── dataTableLwc.js-meta.xml
-│
-└── messageChannels/
-    └── HomePageChannel__c.messageChannel  # LMS channel for inter-component communication
+Custom Metadata (config)  →  Apex Controller (single class)  →  LWC Components (3 reusable)
 ```
 
----
+- **Object_Config__mdt** — stores SOQL queries, datatable column definitions (JSON), sort order, page size, tab label/icon
+- **RelatedQuickLink__mdt** — stores quick link definitions (JSON) with object names, icons, and filter fields
+- **GetRecordController.cls** — single `with sharing` Apex class that reads metadata, builds dynamic SOQL with bind variables, and serves all three components
 
 ## Components
 
-### `createRecordComponent`
+| Component | Purpose | Page Targets |
+|-----------|---------|--------------|
+| `dataTableLwc` | Generic datatable driven by `Object_Config__mdt`. Supports sorting, lookup filtering, pagination, "View All" in console tabs. | Home, App, URL Addressable |
+| `createRecordComponent` | Toggle-based record creator (Opportunity / Case). Dispatches `RefreshEvent` on save to sync the datatable. | Home |
+| `relatedListQuickLinks` | Quick links to related lists with live record counts. Navigates to `dataTableLwc` in full view. | Record, App, Home |
 
-Renders a form card that allows users to create either an Opportunity or a Case.
+## How They Communicate
 
-| Property | Type | Description |
-|---|---|---|
-| `isToogleButtonVisible` | `@api Boolean` | Shows or hides the Opportunity/Case toggle |
-| `formTitle` | `@api String` | Title displayed on the card header |
+- **RefreshEvent** — `createRecordComponent` saves a record → dispatches `RefreshEvent` → `dataTableLwc` reloads automatically
+- **URL State** — `relatedListQuickLinks` navigates to `dataTableLwc` passing filter params via `CurrentPageReference`
+- **@api Properties** — parent pages pass `objectApiName`, `configName`, `recordId` through Lightning App Builder
 
-**Key behaviour:**
-- Uses `lightning-record-edit-form` with `lightning-input-field` for standard platform field rendering and validation
-- On successful save, fires a `RECORD_CREATED` LMS message to notify sibling components
-- Resets all form fields after a successful save
+## Deployment
 
-**Opportunity fields:** Name, Account, Close Date, Probability, Amount, Type, Stage
+```bash
+git clone https://github.com/your-username/metadata-driven-lwc.git
+cd metadata-driven-lwc
+sf project deploy start --source-dir force-app --target-org your-org-alias
+```
 
-**Case fields:** Contact, Status, Priority, Supplied Email, Origin, Description, Subject
+Before deploying, make sure the two Custom Metadata Types (`Object_Config__mdt` and `RelatedQuickLink__mdt`) exist in your org with the fields described above — or include their metadata definitions in your `force-app` directory.
 
----
+## Page Setup
 
-### `dataTableLwc`
+**Home Page** — In Lightning App Builder, add `dataTableLwc` (set `Object API Name` to `Opportunity` or `Case`) and `createRecordComponent` (set `Form Title`, enable toggle). Creating a record auto-refreshes the table.
 
-Displays a sortable data table of Opportunities or Cases, with an optional lookup filter.
+**App Page** — Same as Home Page. Add multiple `dataTableLwc` instances for different objects and optionally `relatedListQuickLinks`.
 
-| Property | Type | Description |
-|---|---|---|
-| `objectApiName` | `@api String` | `'Opportunity'` or `'Case'` – determines which data set is loaded |
+**Record Page (e.g. Account)** — Add `relatedListQuickLinks` and set `Config Name` to match your `RelatedQuickLink__mdt` record (e.g. `Account_Related`). The component picks up `recordId` automatically and shows links with live counts.
 
-**Key behaviour:**
+## Adding a New Object
 
-- Reads page state via `CurrentPageReference` to support deep-linking and the View All flow
-- Shows a **View All** button when the result set exceeds 5 rows (the default page size)
-- In console navigation, View All opens a new workspace tab with an appropriate label and icon
-- Lookup filter (Account for Opportunities, Contact for Cases) narrows results without a page reload
+No code needed — just create a new `Object_Config__mdt` record in Setup with your SOQL query and column JSON, then drop `dataTableLwc` on any page and set the `Object API Name`. Optionally add it to a `RelatedQuickLink__mdt` record to include it in the quick links.
 
----
+## Tech Stack
 
-## Apex Controller
-
-### `GetRecordController`
-
-`with sharing` Apex class exposing two `@AuraEnabled` methods:
-
-| Method | Parameter | Returns |
-|---|---|---|
-| `getOpportunities` | `recordId` (nullable) | All Opportunities, or filtered by `AccountId` |
-| `getCase` | `recordId` (nullable) | All Cases, or filtered by `ContactId` |
-
-Both methods order results by `CreatedDate DESC`.
-
----
-
-## Lightning Message Channel
-
-**`HomePageChannel__c`** is used for communication between `createRecordComponent` and `dataTableLwc`.
-
-| Field | Values | Description |
-|---|---|---|
-| `type` | `RECORD_CREATED` / `TARGET_CHANGED` | Message type |
-| `objectApiName` | `Opportunity` / `Case` | The affected object |
-| `targetId` | `String \| null` | Account or Contact Id for filtering |
-
----
-
-## Setup & Deployment
-
-### Prerequisites
-
-
-### Add components to a Lightning App Page
-
-1. Open **Setup → Lightning App Builder**
-2. Create or edit a Home or App page
-3. Drag **createRecordComponent** and **dataTableLwc** onto the canvas
-4. Set the `objectApiName` property on `dataTableLwc` to `Opportunity` or `Case`
-5. **Save** and **Activate** the page
-
----
-
-## Dependencies
-
-| API / Feature | Usage |
-|---|---|
-| `lightning/messageService` | Inter-component communication |
-| `lightning/navigation` + `NavigationMixin` | Standard and console navigation |
-| `lightning/platformWorkspaceApi` | Console tab management (open, label, icon) |
-| `lightning-record-edit-form` | Platform-native record creation with validation |
-| `lightning-datatable` | Sortable, paginated data display |
-
-
+Salesforce API v65.0 · Apex (`with sharing`, dynamic SOQL, bind variables) · LWC (`NavigationMixin`, `platformWorkspaceApi`, `lightning/refresh`) · SLDS base components
