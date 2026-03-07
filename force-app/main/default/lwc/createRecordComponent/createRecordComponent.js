@@ -14,9 +14,6 @@ export default class CreateRecordComponent extends LightningElement {
     isOpportunity = true;
     formMainLabel = "Opportunity";
 
-    // Search input values for Account and Contact lookup fields
-    selectedAccountId;
-    selectedContactId;
 
    
     inputFields = [
@@ -52,8 +49,9 @@ export default class CreateRecordComponent extends LightningElement {
     // Handles tooggling between Opportunity and Case creation
     handleOnChange(event) {
         this.inputFields.forEach(md => {
-            md.isActive = md.objectApiName === "Opportunity" ? this.isOpportunity? false : true : this.isOpportunity? true : false;
-
+            md.isActive = md.objectApiName === "Opportunity" 
+            ? this.isOpportunity? false : true 
+            : this.isOpportunity? true : false;
         })
         this.isOpportunity = event.target.checked;
         this.formMainLabel = this.isOpportunity ? 'Opportunity' : 'Case';
@@ -84,13 +82,6 @@ export default class CreateRecordComponent extends LightningElement {
         }));
     }
 
-    handleOppAccountChange(event) {
-        this.selectedAccountId = event.detail.value || null;
-    }
-
-    handleCaseContactChange(event) {
-        this.selectedContactId = event.detail.value || null;
-    }
 
     // Resets all form fields to their default state
     resetFormFields() {
