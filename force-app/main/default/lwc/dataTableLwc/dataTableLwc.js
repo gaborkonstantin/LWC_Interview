@@ -59,7 +59,7 @@ export default class DataTableLwc extends NavigationMixin(LightningElement) {
     // Reads navigation state parameters from the current page reference
     @wire(CurrentPageReference)
     readPageState(pageRef) {
-        const state = pageRef?.state;
+        const state = pageRef?.state; // Defend agains null or undefined pageRef
         if (!state) return;
 
         if (state.c__objectApiName) {

@@ -10,8 +10,14 @@
         <template if:true={error}>
             <p class="slds-text-color_error slds-m-around_small">{error}</p>
         </template>
-        <lightning-datatable key-field="Id" columns={columns} data={tableData} hide-checkbox-column
-            default-sort-direction={defaultSortDirection} sorted-direction={sortDirection} sorted-by={sortedBy}
+        <lightning-datatable 
+            key-field="Id" 
+            columns={columns} 
+            data={tableData} 
+            hide-checkbox-column
+            default-sort-direction={defaultSortDirection} 
+            sorted-direction={sortDirection} 
+            sorted-by={sortedBy}
             onsort={onHandleSort}>
         </lightning-datatable>
     </lightning-card>
